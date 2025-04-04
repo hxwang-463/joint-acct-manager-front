@@ -340,7 +340,9 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <span className="inline-block w-28 text-gray-900">{record.amount ? `$${record.amount.toFixed(2)}` : 'N/A'}</span>
+                        <span className={`inline-block w-28 ${!record.amount ? 'text-red-500 font-bold' : 'text-gray-900'}`}>
+                          {record.amount ? `$${record.amount.toFixed(2)}` : 'N/A'}
+                        </span>
                         {!record.paid && (
                           <div className="w-[180px]">
                             <button
