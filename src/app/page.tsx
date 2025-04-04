@@ -304,7 +304,12 @@ export default function Home() {
             {recordsWithBalance.map((record: RecordWithBalance) => (
               <tr key={record.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="p-4">{record.date}</td>
-                <td className="p-4">{record.acctName}</td>
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${record.acctName.startsWith('K') ? 'bg-orange-500' : 'bg-blue-800'}`}></div>
+                    {record.acctName}
+                  </div>
+                </td>
                 <td className="p-4">
                   <div className="flex items-center gap-3">
                     {editingAmount === record.id ? (
@@ -340,7 +345,7 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <span className={`inline-block w-28 ${!record.amount ? 'text-red-500 font-bold' : 'text-gray-900'}`}>
+                        <span className={`inline-block w-28 ${!record.amount ? 'text-red-600 font-bold' : 'text-gray-900'}`}>
                           {record.amount ? `$${record.amount.toFixed(2)}` : 'N/A'}
                         </span>
                         {!record.paid && (
