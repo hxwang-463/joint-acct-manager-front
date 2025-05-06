@@ -238,7 +238,7 @@ export default function Home() {
   // Calculate running balance for unpaid records
   let runningBalance = currentBalance;
   const recordsWithBalance = records.map((record: Record) => {
-    if (!record.paid && record.amount) {
+    if (!record.paid && record.amount !== null) {
       const balanceAfter = runningBalance - record.amount;
       runningBalance = balanceAfter;
       return { ...record, balanceAfter };
@@ -345,8 +345,8 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <span className={`inline-block w-28 ${!record.amount ? 'text-red-600 font-bold' : 'text-gray-900'}`}>
-                          {record.amount ? `$${record.amount.toFixed(2)}` : 'N/A'}
+                        <span className={`inline-block w-28 ${record.amount === null ? 'text-red-600 font-bold' : 'text-gray-900'}`}>
+                          {record.amount !== null ? `$${record.amount.toFixed(2)}` : 'N/A'}
                         </span>
                         {!record.paid && (
                           <div className="w-[180px]">
