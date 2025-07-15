@@ -31,7 +31,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy manual
 
-`npx next build`
+`npx next build`  
+`scp -i ~/Documents/vps_xiaokai -r ./out ***@***:/usr/share/nginx/`
 
 ## Deploy on Vercel
 

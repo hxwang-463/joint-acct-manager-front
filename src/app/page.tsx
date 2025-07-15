@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
-const BASE_URL = 'https://joint.hxwang.xyz';
-// const BASE_URL = 'http://localhost:8080';
+// const BASE_URL = 'https://joint.hxwang.xyz';
+const BASE_URL = 'http://localhost:8080';
 interface Record {
   id: number;
   acctName: string;
@@ -19,27 +19,43 @@ interface RecordWithBalance extends Record {
 }
 
 interface Balance {
+  id: number;
   amount: number;
+  delta: number;
+  date: string;
+  comment: string;
 }
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number, comment: string) => void;
   title: string;
   type: 'deposit' | 'withdraw';
 }
 
 const Modal = ({ isOpen, onClose, onSubmit, title, type }: ModalProps) => {
   const [amount, setAmount] = useState('');
+  const [comment, setComment] = useState('');
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = type === 'withdraw' ? -Math.abs(Number(amount)) : Math.abs(Number(amount));
-    onSubmit(value);
+    onSubmit(value, comment);
     setAmount('');
+    setComment('');
     onClose();
   };
 
@@ -63,6 +79,14 @@ const Modal = ({ isOpen, onClose, onSubmit, title, type }: ModalProps) => {
             placeholder="Enter amount"
             className="w-full p-3 border rounded-lg mb-6 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
+          />
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value.slice(0, 100))}
+            placeholder="Enter comment (max 100 chars)"
+            className="w-full p-3 border rounded-lg mb-6 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            maxLength={100}
           />
           <div className="flex justify-end gap-3">
             <button
@@ -148,6 +172,49 @@ export default function Home() {
   const [tempAmount, setTempAmount] = useState<string>('');
   const [confirmingPaid, setConfirmingPaid] = useState<number | null>(null);
 
+  // Add new state for history modal and data
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [history, setHistory] = useState<Balance[]>([]);
+  const [historyLimit, setHistoryLimit] = useState(10);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Fetch history function
+  const fetchHistory = async (limit: number) => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/balance/history?limit=${limit}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch history');
+      const data: Balance[] = await res.json();
+      setHistory(data);
+    } catch (e) {
+      setHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Prevent background scroll when history modal is open
+  useEffect(() => {
+    if (!isHistoryModalOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isHistoryModalOpen]);
+
+  // Open modal and fetch history
+  const handleOpenHistory = () => {
+    setIsHistoryModalOpen(true);
+    fetchHistory(historyLimit);
+  };
+
+  // When limit changes, refetch
+  useEffect(() => {
+    if (isHistoryModalOpen) fetchHistory(historyLimit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historyLimit]);
+
   // Initial data fetch
   useEffect(() => {
     Promise.all([getRecords(), getBalance()]).then(([recordsData, balanceData]) => {
@@ -156,14 +223,14 @@ export default function Home() {
     });
   }, []);
 
-  const handleTransaction = async (amount: number) => {
+  const handleTransaction = async (amount: number, comment: string) => {
     try {
       const res = await fetch(`${BASE_URL}/api/v1/balance`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
-          'Content-Type': 'text/plain',
+          'Content-Type': 'application/json',
         },
-        body: amount.toString(),
+        body: JSON.stringify({ offset: amount, comment }),
       });
 
       if (!res.ok) {
@@ -252,9 +319,19 @@ export default function Home() {
       
       <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
         <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-lg text-gray-600 mb-2">Current Balance</h2>
-            <p className="text-3xl font-bold">${currentBalance.toFixed(2)}</p>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg text-gray-600 mb-2">Current Balance</h2>
+                <button
+                  onClick={handleOpenHistory}
+                  className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  History
+                </button>
+              </div>
+              <p className="text-3xl font-bold mt-1">${currentBalance.toFixed(2)}</p>
+            </div>
           </div>
           <div className="flex gap-4">
             <button
@@ -289,6 +366,66 @@ export default function Home() {
         type="withdraw"
       />
       
+      {/* History Modal */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsHistoryModalOpen(false)} />
+          {/* Modal */}
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] max-w-full bg-white/95 backdrop-blur-md p-6 rounded-xl shadow-xl flex flex-col max-h-[80vh]">
+            <h2 className="text-xl font-bold mb-6">View Transaction History</h2>
+            <div className="flex-1 overflow-y-auto mb-4">
+              {historyLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : history.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No history found.</div>
+              ) : (
+                <table className="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-300">
+                      <th className="text-left p-2 font-semibold">Date</th>
+                      <th className="text-left p-2 font-semibold">Delta</th>
+                      <th className="text-left p-2 font-semibold">Amount</th>
+                    
+                      <th className="text-left p-2 font-semibold">Comment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item) => (
+                      <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="p-2 whitespace-nowrap">{item.date}</td>
+                        <td className="p-2 whitespace-nowrap" style={{ color: item.delta < 0 ? '#dc2626' : '#16a34a', fontWeight: 'bold' }}>{item.delta > 0 ? '+' : ''}{item.delta.toFixed(2)}</td>  
+                        <td className="p-2 whitespace-nowrap">${item.amount.toFixed(2)}</td>
+                        <td className="p-2">{item.comment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                {[10, 20, 50].map((limit) => (
+                  <button
+                    key={limit}
+                    onClick={() => setHistoryLimit(limit)}
+                    className={`px-3 py-1 rounded ${historyLimit === limit ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >
+                    {limit}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[800px]">
           <thead>
