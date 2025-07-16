@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
-// const BASE_URL = 'https://joint.hxwang.xyz';
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'https://joint.hxwang.xyz';
+// const BASE_URL = 'http://localhost:8080';
 interface Record {
   id: number;
   acctName: string;
@@ -318,34 +318,35 @@ export default function Home() {
       <h1 className="text-2xl font-bold mb-6">Joint Account Manager</h1>
       
       <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg text-gray-600 mb-2">Current Balance</h2>
-                <button
-                  onClick={handleOpenHistory}
-                  className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  History
-                </button>
-              </div>
-              <p className="text-3xl font-bold mt-1">${currentBalance.toFixed(2)}</p>
-            </div>
+        <div className="flex flex-col gap-4">
+          {/* Row 1: Current Balance text and History button */}
+          <div className="flex justify-start items-center gap-4">
+            <h2 className="text-lg text-gray-600">Current Balance</h2>
+            <button
+              onClick={handleOpenHistory}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              History
+            </button>
           </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => setIsDepositModalOpen(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Add Deposit
-            </button>
-            <button
-              onClick={() => setIsWithdrawModalOpen(true)}
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-            >
-              Add Withdraw
-            </button>
+          
+          {/* Row 2: Balance amount and action buttons */}
+          <div className="flex justify-between items-center">
+            <p className="text-3xl font-bold">${currentBalance.toFixed(2)}</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setIsDepositModalOpen(true)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Add Deposit
+              </button>
+              <button
+                onClick={() => setIsWithdrawModalOpen(true)}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Add Withdraw
+              </button>
+            </div>
           </div>
         </div>
       </div>
