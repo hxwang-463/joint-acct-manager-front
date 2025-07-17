@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
+import packageJson from '../../package.json';
 
 const BASE_URL = 'https://joint.hxwang.xyz';
 // const BASE_URL = 'http://localhost:8080';
@@ -315,7 +316,10 @@ export default function Home() {
   
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Joint Account Manager</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">Joint Account Manager</h1>
+        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">v{packageJson.version}</span>
+      </div>
       
       <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
         <div className="flex flex-col gap-4">
@@ -395,7 +399,13 @@ export default function Home() {
                     {history.map((item) => (
                       <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
                         <td className="p-2 whitespace-nowrap">{item.date}</td>
-                        <td className="p-2 whitespace-nowrap" style={{ color: item.delta < 0 ? '#dc2626' : '#16a34a', fontWeight: 'bold' }}>{item.delta > 0 ? '+' : ''}{item.delta.toFixed(2)}</td>  
+                        <td className="p-2 whitespace-nowrap">
+                          {item.delta != null ? (
+                            <span style={{ color: item.delta < 0 ? '#dc2626' : '#16a34a', fontWeight: 'bold' }}>
+                              {item.delta > 0 ? '+' : ''}{item.delta.toFixed(2)}
+                            </span>
+                          ) : '-'}
+                        </td>
                         <td className="p-2 whitespace-nowrap">${item.amount.toFixed(2)}</td>
                         <td className="p-2">{item.comment}</td>
                       </tr>
