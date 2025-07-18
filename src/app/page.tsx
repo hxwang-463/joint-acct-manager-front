@@ -470,24 +470,24 @@ export default function Home() {
                           className="w-28 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                           autoFocus
                         />
-                        <div className="flex gap-2 w-[180px]">
+                        <div className="flex gap-2 w-[180px] sm:w-[180px] w-auto">
                           <button
                             onClick={() => handleAmountEdit(record)}
-                            className="px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+                            className="px-2 sm:px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            Save
+                            <span className="hidden sm:inline">Save</span>
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="px-3 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+                            className="px-2 sm:px-3 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
-                            Cancel
+                            <span className="hidden sm:inline">Cancel</span>
                           </button>
                         </div>
                       </>
@@ -497,15 +497,15 @@ export default function Home() {
                           {record.amount !== null ? `$${record.amount.toFixed(2)}` : 'N/A'}
                         </span>
                         {!record.paid && (
-                          <div className="w-[180px]">
+                          <div className="w-[180px] sm:w-[180px] w-auto">
                             <button
                               onClick={() => handleAmountEdit(record)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-200"
+                              className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-200"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                               </svg>
-                              Edit Amount
+                              <span className="hidden sm:inline">Edit Amount</span>
                             </button>
                           </div>
                         )}
@@ -533,37 +533,37 @@ export default function Home() {
                       {record.paid ? 'Paid' : 'Unpaid'}
                     </span>
                     {!record.paid && (
-                      <div className="w-[180px]">
+                      <div className="w-[180px] sm:w-[180px] w-auto">
                         {confirmingPaid === record.id ? (
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleMarkPaid(record)}
-                              className="px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+                              className="px-2 sm:px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                               </svg>
-                              Submit
+                              <span className="hidden sm:inline">Submit</span>
                             </button>
                             <button
                               onClick={handleCancelPaid}
-                              className="px-3 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
+                              className="px-2 sm:px-3 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow transition-all duration-200 flex items-center gap-1"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                               </svg>
-                              Cancel
+                              <span className="hidden sm:inline">Cancel</span>
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleMarkPaid(record)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-200"
+                            className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-200"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            Mark Paid
+                            <span className="hidden sm:inline">Mark Paid</span>
                           </button>
                         )}
                       </div>
