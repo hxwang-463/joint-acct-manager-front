@@ -12,6 +12,10 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+# Needed so the auto version bump can be pushed back to main.
+permissions:
+  contents: write
+
 env:
   NODE_VERSION: '22'
 
@@ -19,8 +23,14 @@ jobs:
   verify:
     name: Lint, typecheck & build
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the previous package.json can be read to decide
+          # whether the version was already bumped by hand.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -28,6 +38,31 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # Runs before the build so the artifact carries the final version.
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            ./scripts/auto-version.sh "${{ github.event.before }}"
+          else
+            # PRs and manual runs never bump; just report what is in the file.
+            V=$(node -p "require('./package.json').version")
+            echo "Not a push to main; using version ${V} without bumping."
+            printf 'version=%s\nbumped=false\n' "$V" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit version bump
+        if: steps.version.outputs.bumped == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          # [skip ci] plus the fact that pushes made with GITHUB_TOKEN do not
+          # trigger workflow runs: two independent guards against a loop.
+          git commit -m "Bump version to v${{ steps.version.outputs.version }} [skip ci]"
+          git push origin HEAD:main
 
       - run: npm run lint
 
@@ -78,9 +113,12 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           set -euo pipefail
-          RELEASE="${DEPLOY_ROOT}/releases/$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          # Version in the directory name so `ls releases/` reads as a
+          # deployment history you can roll back through by version.
+          RELEASE="${DEPLOY_ROOT}/releases/$(date -u +%Y%m%d%H%M%S)-v${VERSION}-${GITHUB_SHA::7}"
           echo "RELEASE=${RELEASE}" >> "$GITHUB_ENV"
 
           ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${RELEASE}'"
@@ -109,23 +147,42 @@ jobs:
             ls -1dt */ | tail -n +6 | xargs -r rm -rf
           EOF
 
-      - name: Verify site is serving
+      # Asserts the *deployed* version, not just that something responds — a
+      # 200 from a stale release would otherwise look like a successful deploy.
+      - name: Verify deployed version
         env:
           SITE_URL: ${{ vars.SITE_URL }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           set -euo pipefail
           if [ -z "${SITE_URL}" ]; then
             echo "SITE_URL variable not set; skipping smoke check."
             exit 0
           fi
+
+          # Matches the <meta name="app-version"> emitted by app/layout.tsx.
+          # Attribute order is not guaranteed, so accept either arrangement.
           for attempt in 1 2 3 4 5; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "${SITE_URL}" || echo 000)
-            if [ "$code" = "200" ]; then
-              echo "Site responded 200."
+            body=$(curl -sS --max-time 15 -w '\n%{http_code}' "${SITE_URL}" 2>/dev/null || true)
+            code=$(printf '%s' "$body" | tail -n1)
+
+            served=$(printf '%s' "$body" \
+              | grep -oE '<meta[^>]*app-version[^>]*>' \
+              | grep -oE 'content="[^"]*"' \
+              | head -1 | cut -d'"' -f2 || true)
+
+            if [ "$code" = "200" ] && [ "$served" = "$VERSION" ]; then
+              echo "Deploy confirmed: ${SITE_URL} is serving v${VERSION}."
               exit 0
             fi
-            echo "Attempt ${attempt}: got ${code}, retrying in 5s..."
+
+            echo "Attempt ${attempt}: status=${code}, served version='${served:-none}', want '${VERSION}'; retrying in 5s..."
             sleep 5
           done
-          echo "Site did not return 200 after deploy."
+
+          echo "::error::Site did not serve v${VERSION} after deploy (last status ${code})."
+          echo "Roll back with:"
+          echo "  D=${DEPLOY_ROOT:-/usr/share/nginx/joint-deploy}"
+          echo '  ls -1dt $D/releases/*/    # pick the previous one'
+          echo '  ln -sfn $D/releases/<prev> $D/current.tmp && mv -Tf $D/current.tmp $D/current'
           exit 1

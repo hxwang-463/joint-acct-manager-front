@@ -34,7 +34,9 @@ export default function Home() {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold">Joint Account Manager</h1>
-        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">v{version}</span>
+        {/* Single template literal, not `v{version}` — React would otherwise
+            split that into two text nodes separated by an HTML comment. */}
+        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">{`v${version}`}</span>
       </div>
 
       <BalanceCard

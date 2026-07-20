@@ -7,6 +7,50 @@ The server keeps the last 5 releases and serves whichever one the `current`
 symlink points at, so activating a build — or rolling one back — is an atomic
 symlink swap. Nginx never serves a half-copied directory.
 
+## Versioning
+
+Every push to `main` bumps the patch version automatically — unless you already
+bumped it yourself in that push, in which case your version is left alone.
+
+| You push | Result |
+| --- | --- |
+| Commits, version untouched | CI bumps `1.0.1` → `1.0.2` and commits it back to `main` |
+| Commits including a manual bump to `1.1.0` | CI leaves `1.1.0` alone |
+
+The bump happens *before* the build, so the deployed bundle carries the new
+number. CI then commits `package.json` + `package-lock.json` back to `main` as
+`Bump version to vX.Y.Z [skip ci]`.
+
+That commit does not retrigger the workflow, for two independent reasons:
+pushes authenticated with `GITHUB_TOKEN` do not raise new workflow events, and
+`[skip ci]` would suppress it regardless.
+
+To release a minor or major version, bump it yourself before pushing:
+
+```bash
+npm version minor --no-git-tag-version   # or major
+git commit -am "Release 1.1.0"
+git push
+```
+
+### How the version proves a deploy worked
+
+The version appears in two places, both fed from `package.json`:
+
+- the badge next to the page title, e.g. `v1.0.2`
+- `<meta name="app-version" content="1.0.2">` in the page `<head>`
+
+After activating a release, CI reads that meta tag back off the live site and
+**fails the run if it does not match the version it just built** — so a stale
+release still returning HTTP 200 is reported as a failed deploy rather than a
+green tick. The failure message includes the rollback commands.
+
+To check by hand at any time:
+
+```bash
+curl -s https://joint.hxwang.xyz/ | grep -o '<meta[^>]*app-version[^>]*>'
+```
+
 ## Server layout (already set up)
 
 ```

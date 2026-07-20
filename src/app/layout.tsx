@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { version } from "../../package.json";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Joint Account Manager",
   description: "Track the shared balance and upcoming payments on a joint account.",
+  // Machine-readable build marker. CI greps this after deploying to confirm the
+  // release that actually went live, rather than trusting a bare 200.
+  other: { "app-version": version },
 };
 
 export default function RootLayout({
