@@ -19,7 +19,6 @@ interface RecordsTableProps {
  */
 type RowAction =
   | { kind: 'editing'; id: number }
-  | { kind: 'confirmingEdit'; id: number }
   | { kind: 'confirmingPaid'; id: number }
   | null;
 
@@ -35,17 +34,6 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
   const startEdit = (record: PaymentRecordWithBalance) => {
     setAction({ kind: 'editing', id: record.id });
     setDraftAmount(record.amount?.toString() ?? '');
-  };
-
-  // Paid rows confirm first, since changing a settled amount moves the balance.
-  // Unpaid rows open the input straight away.
-  const startConfirmEdit = (record: PaymentRecordWithBalance) => {
-    if (record.paid) {
-      setAction({ kind: 'confirmingEdit', id: record.id });
-      setDraftAmount('');
-      return;
-    }
-    startEdit(record);
   };
 
   const startConfirmPaid = (record: PaymentRecordWithBalance) => {
@@ -100,11 +88,9 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
               key={record.id}
               record={record}
               isEditingAmount={action?.kind === 'editing' && action.id === record.id}
-              isConfirmingEdit={action?.kind === 'confirmingEdit' && action.id === record.id}
               isConfirmingPaid={action?.kind === 'confirmingPaid' && action.id === record.id}
               draftAmount={draftAmount}
               onDraftAmountChange={setDraftAmount}
-              onStartConfirmEdit={() => startConfirmEdit(record)}
               onStartEdit={() => startEdit(record)}
               onSaveAmount={() => saveAmount(record.id)}
               onCancelEdit={reset}

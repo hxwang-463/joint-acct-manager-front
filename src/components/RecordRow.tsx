@@ -11,13 +11,9 @@ const ACTION_SLOT = 'w-auto sm:w-[180px]';
 interface RecordRowProps {
   record: PaymentRecordWithBalance;
   isEditingAmount: boolean;
-  /** Paid rows only: the "are you sure" step before the input opens. */
-  isConfirmingEdit: boolean;
   isConfirmingPaid: boolean;
   draftAmount: string;
   onDraftAmountChange: (value: string) => void;
-  /** Opens the confirm step on paid rows; opens the input directly otherwise. */
-  onStartConfirmEdit: () => void;
   onStartEdit: () => void;
   onSaveAmount: () => void;
   onCancelEdit: () => void;
@@ -29,11 +25,9 @@ interface RecordRowProps {
 export function RecordRow({
   record,
   isEditingAmount,
-  isConfirmingEdit,
   isConfirmingPaid,
   draftAmount,
   onDraftAmountChange,
-  onStartConfirmEdit,
   onStartEdit,
   onSaveAmount,
   onCancelEdit,
@@ -66,6 +60,15 @@ export function RecordRow({
                   step="0.01"
                   value={draftAmount}
                   onChange={(e) => onDraftAmountChange(e.target.value)}
+                  // Select the existing amount on focus so typing replaces it.
+                  // Without this you append to it — opening a $52.46 row and
+                  // typing "45" leaves "52.4645".
+                  onFocus={(e) => e.target.select()}
+                  // Escape cancels, matching the modals. Deliberately no
+                  // Enter-to-save: committing an amount stays an explicit click.
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') onCancelEdit();
+                  }}
                   className={`w-28 p-2 border rounded-lg outline-none transition-all ${
                     record.paid
                       ? 'border-amber-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500'
@@ -99,27 +102,12 @@ export function RecordRow({
                 </span>
 
                 <div className={ACTION_SLOT}>
-                  {isConfirmingEdit ? (
-                    // Paid rows get an explicit yes/no before the input opens,
-                    // matching how "Mark Paid" already confirms.
-                    <div className="flex gap-2">
-                      <ActionButton
-                        variant="cautionConfirm"
-                        onClick={onStartEdit}
-                        icon={<CheckIcon />}
-                        label="Confirm"
-                      />
-                      <ActionButton
-                        variant="cancel"
-                        onClick={onCancelEdit}
-                        icon={<CloseIcon />}
-                        label="Cancel"
-                      />
-                    </div>
-                  ) : record.paid ? (
+                  {record.paid ? (
+                    // Amber rather than a confirm step: the colour and the
+                    // caution line carry the warning once the input is open.
                     <ActionButton
                       variant="caution"
-                      onClick={onStartConfirmEdit}
+                      onClick={onStartEdit}
                       icon={<WarningIcon />}
                       label="Edit paid"
                     />
@@ -136,7 +124,7 @@ export function RecordRow({
             )}
           </div>
 
-          {record.paid && (isEditingAmount || isConfirmingEdit) && (
+          {record.paid && isEditingAmount && (
             <p className="flex items-center gap-1 text-xs text-amber-700">
               <WarningIcon className="w-3 h-3 shrink-0" />
               This record is already paid, changing it will adjust your history.
