@@ -136,7 +136,12 @@ jobs:
           DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
         run: |
           set -euo pipefail
-          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" bash -eu -o pipefail <<EOF
+          # --noprofile --norc: the server's /etc/bashrc references an unset
+          # variable, which would abort the script under `set -u` if it were
+          # ever sourced. Skipping startup files keeps deploys independent of
+          # the login environment.
+          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" \
+            bash --noprofile --norc -euo pipefail -s <<EOF
             # Atomic swap: build the new symlink beside the old one, then rename
             # over it. Nginx never sees a half-written web root.
             ln -sfn '${RELEASE}' '${DEPLOY_ROOT}/current.tmp'
