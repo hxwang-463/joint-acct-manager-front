@@ -1,0 +1,131 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two deploys race each other onto the server.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  verify:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - name: Build static export
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+        run: npm run build
+
+      - name: Upload static site
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: out/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to Nginx
+    needs: verify
+    # Only real pushes to main deploy; PRs stop after the verify job.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download static site
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          RELEASE="${DEPLOY_ROOT}/releases/$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          echo "RELEASE=${RELEASE}" >> "$GITHUB_ENV"
+
+          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" "mkdir -p '${RELEASE}'"
+
+          # Trailing slash on out/ copies the contents, not the directory itself.
+          rsync -az --delete \
+            -e "ssh -p ${SSH_PORT}" \
+            out/ "${SSH_USER}@${SSH_HOST}:${RELEASE}/"
+
+      - name: Activate release
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}" bash -eu -o pipefail <<EOF
+            # Atomic swap: build the new symlink beside the old one, then rename
+            # over it. Nginx never sees a half-written web root.
+            ln -sfn '${RELEASE}' '${DEPLOY_ROOT}/current.tmp'
+            mv -Tf '${DEPLOY_ROOT}/current.tmp' '${DEPLOY_ROOT}/current'
+
+            # Keep the 5 most recent releases so a rollback is just another swap.
+            cd '${DEPLOY_ROOT}/releases'
+            ls -1dt */ | tail -n +6 | xargs -r rm -rf
+          EOF
+
+      - name: Verify site is serving
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SITE_URL}" ]; then
+            echo "SITE_URL variable not set; skipping smoke check."
+            exit 0
+          fi
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "${SITE_URL}" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "Site responded 200."
+              exit 0
+            fi
+            echo "Attempt ${attempt}: got ${code}, retrying in 5s..."
+            sleep 5
+          done
+          echo "Site did not return 200 after deploy."
+          exit 1

@@ -1,41 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Joint Account Manager — frontend
 
-## Getting Started
+Single-page Next.js UI for tracking a shared account balance and the upcoming
+payments drawn against it. Built as a **static export** (`output: 'export'`) and
+served by Nginx; all data comes from the backend API at runtime.
 
-First, run the development server:
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+To point at a local backend instead of production, create `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Defaults to `https://joint.hxwang.xyz` when unset.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server with hot reload |
+| `npm run build` | Static export into `out/` |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Toolchain notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**TypeScript is pinned to `~6.0.x` on purpose.** TypeScript 7 is the Go-native
+compiler rewrite, and the `typescript-eslint` stack bundled by
+`eslint-config-next` declares a peer range of `>=4.8.4 <6.1.0`. On TS 7 both
+`npm run lint` and `npm run build` fail outright, so the pin holds at the newest
+release the rest of the toolchain actually supports. Revisit once
+`eslint-config-next` ships a TS 7-compatible `typescript-eslint`.
 
-## Deploy manual
+## Project layout
 
-`npx next build`  
-`scp -i ~/Documents/vps_xiaokai -r ./out ***@***:/usr/share/nginx/`
+```
+src/
+├── app/
+│   ├── layout.tsx           Root layout, fonts, metadata
+│   ├── page.tsx             Composes the page; owns modal open/close state
+│   └── globals.css
+├── components/
+│   ├── BalanceCard.tsx      Balance figure + deposit/withdraw/history buttons
+│   ├── RecordsTable.tsx     Table shell; owns which row is being edited
+│   ├── RecordRow.tsx        One record row (presentational)
+│   ├── TransactionModal.tsx Deposit / withdraw form
+│   ├── HistoryModal.tsx     Balance history, fetches its own data
+│   ├── ModalShell.tsx       Shared backdrop, scroll lock, Escape-to-close
+│   ├── ActionButton.tsx     Icon + label button used across rows
+│   └── icons.tsx            Inline SVG icons
+├── hooks/
+│   ├── useAccountData.ts    Records + balance, fetched together
+│   └── useLockBodyScroll.ts
+└── lib/
+    ├── api.ts               Every backend call, one place
+    ├── format.ts            Currency formatting, running-balance projection
+    └── types.ts             Shared interfaces
+```
 
-## Deploy on Vercel
+Data flows one way: `useAccountData` owns records and balance, and passes a
+`refresh` callback down. Any component that mutates the server calls its API
+function, then `refresh()` — the two values are always refetched together
+because a change to either can affect the other.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pushes to `main` build and deploy automatically via GitHub Actions. See
+[DEPLOYMENT.md](DEPLOYMENT.md) for server setup, required secrets, and rollback.
