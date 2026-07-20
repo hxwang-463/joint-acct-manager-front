@@ -139,7 +139,7 @@ export function RecordRow({
           {record.paid && (isEditingAmount || isConfirmingEdit) && (
             <p className="flex items-center gap-1 text-xs text-amber-700">
               <WarningIcon className="w-3 h-3 shrink-0" />
-              This record is already paid — changing it will adjust your balance.
+              This record is already paid, changing it will adjust your history.
             </p>
           )}
         </div>
