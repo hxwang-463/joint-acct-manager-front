@@ -12,19 +12,44 @@ interface RecordsTableProps {
   onMutated: () => Promise<void>;
 }
 
+/**
+ * Which row, if any, is mid-interaction. A single value rather than one id per
+ * mode, so the states cannot overlap: opening anything anywhere closes whatever
+ * was open before, including a half-typed amount on another row.
+ */
+type RowAction =
+  | { kind: 'editing'; id: number }
+  | { kind: 'confirmingEdit'; id: number }
+  | { kind: 'confirmingPaid'; id: number }
+  | null;
+
 export function RecordsTable({ records, onMutated }: RecordsTableProps) {
-  // Ids rather than booleans so only one row can be edited or confirmed at a time.
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [confirmingPaidId, setConfirmingPaidId] = useState<number | null>(null);
+  const [action, setAction] = useState<RowAction>(null);
   const [draftAmount, setDraftAmount] = useState('');
 
+  const reset = () => {
+    setAction(null);
+    setDraftAmount('');
+  };
+
   const startEdit = (record: PaymentRecordWithBalance) => {
-    setEditingId(record.id);
+    setAction({ kind: 'editing', id: record.id });
     setDraftAmount(record.amount?.toString() ?? '');
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
+  // Paid rows confirm first, since changing a settled amount moves the balance.
+  // Unpaid rows open the input straight away.
+  const startConfirmEdit = (record: PaymentRecordWithBalance) => {
+    if (record.paid) {
+      setAction({ kind: 'confirmingEdit', id: record.id });
+      setDraftAmount('');
+      return;
+    }
+    startEdit(record);
+  };
+
+  const startConfirmPaid = (record: PaymentRecordWithBalance) => {
+    setAction({ kind: 'confirmingPaid', id: record.id });
     setDraftAmount('');
   };
 
@@ -39,7 +64,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
     try {
       await updateRecordAmount(id, amount);
       await onMutated();
-      cancelEdit();
+      reset();
     } catch (error) {
       console.error('Error updating amount:', error);
       alert('Failed to update amount. Please try again.');
@@ -50,7 +75,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
     try {
       await markRecordAsPaid(id);
       await onMutated();
-      setConfirmingPaidId(null);
+      reset();
     } catch (error) {
       console.error('Error marking record as paid:', error);
       alert('Failed to mark record as paid. Please try again.');
@@ -74,16 +99,18 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
             <RecordRow
               key={record.id}
               record={record}
-              isEditingAmount={editingId === record.id}
-              isConfirmingPaid={confirmingPaidId === record.id}
+              isEditingAmount={action?.kind === 'editing' && action.id === record.id}
+              isConfirmingEdit={action?.kind === 'confirmingEdit' && action.id === record.id}
+              isConfirmingPaid={action?.kind === 'confirmingPaid' && action.id === record.id}
               draftAmount={draftAmount}
               onDraftAmountChange={setDraftAmount}
+              onStartConfirmEdit={() => startConfirmEdit(record)}
               onStartEdit={() => startEdit(record)}
               onSaveAmount={() => saveAmount(record.id)}
-              onCancelEdit={cancelEdit}
-              onStartConfirmPaid={() => setConfirmingPaidId(record.id)}
+              onCancelEdit={reset}
+              onStartConfirmPaid={() => startConfirmPaid(record)}
               onConfirmPaid={() => confirmPaid(record.id)}
-              onCancelPaid={() => setConfirmingPaidId(null)}
+              onCancelPaid={reset}
             />
           ))}
         </tbody>

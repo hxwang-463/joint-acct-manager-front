@@ -1,4 +1,4 @@
-type Variant = 'confirm' | 'cancel' | 'subtle';
+type Variant = 'confirm' | 'cancel' | 'subtle' | 'caution' | 'cautionConfirm';
 
 const VARIANT_CLASSES: Record<Variant, string> = {
   confirm:
@@ -6,6 +6,12 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   cancel:
     'px-2 sm:px-3 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow',
   subtle: 'px-2 sm:px-3 py-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100',
+  // Amber pair for editing an already-paid record: deliberately not blue, so a
+  // destructive-ish edit never looks like the routine one.
+  caution:
+    'px-2 sm:px-3 py-1.5 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100',
+  cautionConfirm:
+    'px-2 sm:px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-sm hover:shadow',
 };
 
 interface ActionButtonProps {

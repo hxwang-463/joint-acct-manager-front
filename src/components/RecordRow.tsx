@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionButton } from './ActionButton';
-import { CheckIcon, CloseIcon, PencilIcon } from './icons';
+import { CheckIcon, CloseIcon, PencilIcon, WarningIcon } from './icons';
 import { formatCurrency } from '@/lib/format';
 import type { PaymentRecordWithBalance } from '@/lib/types';
 
@@ -11,9 +11,13 @@ const ACTION_SLOT = 'w-auto sm:w-[180px]';
 interface RecordRowProps {
   record: PaymentRecordWithBalance;
   isEditingAmount: boolean;
+  /** Paid rows only: the "are you sure" step before the input opens. */
+  isConfirmingEdit: boolean;
   isConfirmingPaid: boolean;
   draftAmount: string;
   onDraftAmountChange: (value: string) => void;
+  /** Opens the confirm step on paid rows; opens the input directly otherwise. */
+  onStartConfirmEdit: () => void;
   onStartEdit: () => void;
   onSaveAmount: () => void;
   onCancelEdit: () => void;
@@ -25,9 +29,11 @@ interface RecordRowProps {
 export function RecordRow({
   record,
   isEditingAmount,
+  isConfirmingEdit,
   isConfirmingPaid,
   draftAmount,
   onDraftAmountChange,
+  onStartConfirmEdit,
   onStartEdit,
   onSaveAmount,
   onCancelEdit,
@@ -51,52 +57,90 @@ export function RecordRow({
       </td>
 
       <td className="p-4">
-        <div className="flex items-center gap-3">
-          {isEditingAmount ? (
-            <>
-              <input
-                type="number"
-                step="0.01"
-                value={draftAmount}
-                onChange={(e) => onDraftAmountChange(e.target.value)}
-                className="w-28 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                autoFocus
-              />
-              <div className={`flex gap-2 ${ACTION_SLOT}`}>
-                <ActionButton
-                  variant="confirm"
-                  onClick={onSaveAmount}
-                  icon={<CheckIcon />}
-                  label="Save"
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            {isEditingAmount ? (
+              <>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={draftAmount}
+                  onChange={(e) => onDraftAmountChange(e.target.value)}
+                  className={`w-28 p-2 border rounded-lg outline-none transition-all ${
+                    record.paid
+                      ? 'border-amber-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500'
+                      : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
+                  autoFocus
                 />
-                <ActionButton
-                  variant="cancel"
-                  onClick={onCancelEdit}
-                  icon={<CloseIcon />}
-                  label="Cancel"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <span
-                className={`inline-block w-28 ${
-                  record.amount === null ? 'text-red-600 font-bold' : 'text-gray-900'
-                }`}
-              >
-                {record.amount !== null ? formatCurrency(record.amount) : 'N/A'}
-              </span>
-              {!record.paid && (
-                <div className={ACTION_SLOT}>
+                <div className={`flex gap-2 ${ACTION_SLOT}`}>
                   <ActionButton
-                    variant="subtle"
-                    onClick={onStartEdit}
-                    icon={<PencilIcon />}
-                    label="Edit Amount"
+                    variant={record.paid ? 'cautionConfirm' : 'confirm'}
+                    onClick={onSaveAmount}
+                    icon={<CheckIcon />}
+                    label="Save"
+                  />
+                  <ActionButton
+                    variant="cancel"
+                    onClick={onCancelEdit}
+                    icon={<CloseIcon />}
+                    label="Cancel"
                   />
                 </div>
-              )}
-            </>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`inline-block w-28 ${
+                    record.amount === null ? 'text-red-600 font-bold' : 'text-gray-900'
+                  }`}
+                >
+                  {record.amount !== null ? formatCurrency(record.amount) : 'N/A'}
+                </span>
+
+                <div className={ACTION_SLOT}>
+                  {isConfirmingEdit ? (
+                    // Paid rows get an explicit yes/no before the input opens,
+                    // matching how "Mark Paid" already confirms.
+                    <div className="flex gap-2">
+                      <ActionButton
+                        variant="cautionConfirm"
+                        onClick={onStartEdit}
+                        icon={<CheckIcon />}
+                        label="Confirm"
+                      />
+                      <ActionButton
+                        variant="cancel"
+                        onClick={onCancelEdit}
+                        icon={<CloseIcon />}
+                        label="Cancel"
+                      />
+                    </div>
+                  ) : record.paid ? (
+                    <ActionButton
+                      variant="caution"
+                      onClick={onStartConfirmEdit}
+                      icon={<WarningIcon />}
+                      label="Edit paid"
+                    />
+                  ) : (
+                    <ActionButton
+                      variant="subtle"
+                      onClick={onStartEdit}
+                      icon={<PencilIcon />}
+                      label="Edit Amount"
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {record.paid && (isEditingAmount || isConfirmingEdit) && (
+            <p className="flex items-center gap-1 text-xs text-amber-700">
+              <WarningIcon className="w-3 h-3 shrink-0" />
+              This record is already paid — changing it will adjust your balance.
+            </p>
           )}
         </div>
       </td>
