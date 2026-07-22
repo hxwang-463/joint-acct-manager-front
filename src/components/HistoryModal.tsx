@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { ModalShell } from './ModalShell';
-import { getBalanceHistory } from '@/lib/api';
+import { getBalanceHistory, UnauthorizedError } from '@/lib/api';
 import { formatCurrency, formatDelta } from '@/lib/format';
 import type { Balance } from '@/lib/types';
 
@@ -38,6 +38,8 @@ export function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
         if (!cancelled) setHistory(data);
       })
       .catch((error) => {
+        // On 401 the app re-locks over this modal; don't show a load error.
+        if (error instanceof UnauthorizedError) return;
         console.error('Failed to fetch history:', error);
         if (!cancelled) {
           setHistory([]);

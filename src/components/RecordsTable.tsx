@@ -3,7 +3,12 @@
 import { useState } from 'react';
 
 import { RecordRow } from './RecordRow';
-import { markRecordAsPaid, revertRecordToUnpaid, updateRecordAmount } from '@/lib/api';
+import {
+  markRecordAsPaid,
+  revertRecordToUnpaid,
+  UnauthorizedError,
+  updateRecordAmount,
+} from '@/lib/api';
 import type { PaymentRecordWithBalance } from '@/lib/types';
 
 interface RecordsTableProps {
@@ -60,6 +65,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
       await onMutated();
       reset();
     } catch (error) {
+      if (error instanceof UnauthorizedError) return;
       console.error('Error updating amount:', error);
       alert('Failed to update amount. Please try again.');
     }
@@ -71,6 +77,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
       await onMutated();
       reset();
     } catch (error) {
+      if (error instanceof UnauthorizedError) return;
       console.error('Error marking record as paid:', error);
       alert('Failed to mark record as paid. Please try again.');
     }
@@ -82,6 +89,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
       await onMutated();
       reset();
     } catch (error) {
+      if (error instanceof UnauthorizedError) return;
       console.error('Error reverting record to unpaid:', error);
       alert('Failed to revert record. Please try again.');
     }

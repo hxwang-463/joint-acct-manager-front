@@ -1,9 +1,32 @@
+import { getAuthHeader, handleUnauthorized } from './auth';
 import type { Balance, PaymentRecord } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://joint.hxwang.xyz';
 
+/** Thrown on a 401 so callers can skip their own error UI — re-prompting for the
+ *  password is handled centrally in the API layer. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('Unauthorized');
+    this.name = 'UnauthorizedError';
+  }
+}
+
 async function request(path: string, init?: RequestInit): Promise<Response> {
-  const res = await fetch(`${BASE_URL}${path}`, { cache: 'no-store', ...init });
+  // Merge any per-call headers (e.g. Content-Type) with the Authorization header.
+  const headers = new Headers(init?.headers);
+  const authHeader = getAuthHeader();
+  if (authHeader) {
+    headers.set('Authorization', authHeader);
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, { cache: 'no-store', ...init, headers });
+
+  if (res.status === 401) {
+    // Body is empty on 401 — don't parse. Clear the credential and re-prompt.
+    handleUnauthorized();
+    throw new UnauthorizedError();
+  }
 
   if (!res.ok) {
     throw new Error(`${init?.method ?? 'GET'} ${path} failed with ${res.status}`);

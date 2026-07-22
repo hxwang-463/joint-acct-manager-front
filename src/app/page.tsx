@@ -7,7 +7,7 @@ import { HistoryModal } from '@/components/HistoryModal';
 import { RecordsTable } from '@/components/RecordsTable';
 import { TransactionModal } from '@/components/TransactionModal';
 import { useAccountData } from '@/hooks/useAccountData';
-import { postBalanceOffset } from '@/lib/api';
+import { postBalanceOffset, UnauthorizedError } from '@/lib/api';
 import { withProjectedBalances } from '@/lib/format';
 import { version } from '../../package.json';
 
@@ -23,6 +23,8 @@ export default function Home() {
       await postBalanceOffset(amount, comment);
       await refresh();
     } catch (error) {
+      // On 401 the login modal takes over; don't also alert.
+      if (error instanceof UnauthorizedError) return;
       console.error('Error updating balance:', error);
       alert('Failed to update balance. Please try again.');
     }

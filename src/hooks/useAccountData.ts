@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { getBalance, getRecords } from '@/lib/api';
+import { getBalance, getRecords, UnauthorizedError } from '@/lib/api';
 import type { PaymentRecord } from '@/lib/types';
 
 /**
@@ -23,6 +23,8 @@ export function useAccountData() {
     // refresh()'s async continuation, not synchronously during the effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh().catch((error) => {
+      // On 401 the app re-locks and shows the login modal; not an error to log.
+      if (error instanceof UnauthorizedError) return;
       console.error('Failed to load account data:', error);
     });
   }, [refresh]);
