@@ -44,6 +44,19 @@ export function WarningIcon(props: IconProps) {
   );
 }
 
+export function UndoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M3 10h11a4 4 0 010 8h-1M3 10l4-4M3 10l4 4"
+      />
+    </Icon>
+  );
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <Icon {...props}>

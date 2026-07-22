@@ -1,7 +1,7 @@
 'use client';
 
 import { ActionButton } from './ActionButton';
-import { CheckIcon, CloseIcon, PencilIcon, WarningIcon } from './icons';
+import { CheckIcon, CloseIcon, PencilIcon, UndoIcon, WarningIcon } from './icons';
 import { formatCurrency } from '@/lib/format';
 import type { PaymentRecordWithBalance } from '@/lib/types';
 
@@ -12,6 +12,7 @@ interface RecordRowProps {
   record: PaymentRecordWithBalance;
   isEditingAmount: boolean;
   isConfirmingPaid: boolean;
+  isConfirmingRevert: boolean;
   draftAmount: string;
   onDraftAmountChange: (value: string) => void;
   onStartEdit: () => void;
@@ -20,12 +21,16 @@ interface RecordRowProps {
   onStartConfirmPaid: () => void;
   onConfirmPaid: () => void;
   onCancelPaid: () => void;
+  onStartConfirmRevert: () => void;
+  onConfirmRevert: () => void;
+  onCancelRevert: () => void;
 }
 
 export function RecordRow({
   record,
   isEditingAmount,
   isConfirmingPaid,
+  isConfirmingRevert,
   draftAmount,
   onDraftAmountChange,
   onStartEdit,
@@ -34,6 +39,9 @@ export function RecordRow({
   onStartConfirmPaid,
   onConfirmPaid,
   onCancelPaid,
+  onStartConfirmRevert,
+  onConfirmRevert,
+  onCancelRevert,
 }: RecordRowProps) {
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50">
@@ -153,7 +161,7 @@ export function RecordRow({
             {record.paid ? 'Paid' : 'Unpaid'}
           </span>
 
-          {!record.paid && (
+          {!record.paid ? (
             <div className={ACTION_SLOT}>
               {isConfirmingPaid ? (
                 <div className="flex gap-2">
@@ -176,6 +184,34 @@ export function RecordRow({
                   onClick={onStartConfirmPaid}
                   icon={<CheckIcon />}
                   label="Mark Paid"
+                />
+              )}
+            </div>
+          ) : (
+            <div className={ACTION_SLOT}>
+              {isConfirmingRevert ? (
+                // Amber confirm, matching "Edit paid": reverting a settled
+                // record moves it back to unpaid and re-adjusts the balance.
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="cautionConfirm"
+                    onClick={onConfirmRevert}
+                    icon={<CheckIcon />}
+                    label="Submit"
+                  />
+                  <ActionButton
+                    variant="cancel"
+                    onClick={onCancelRevert}
+                    icon={<CloseIcon />}
+                    label="Cancel"
+                  />
+                </div>
+              ) : (
+                <ActionButton
+                  variant="caution"
+                  onClick={onStartConfirmRevert}
+                  icon={<UndoIcon />}
+                  label="Revert to unpaid"
                 />
               )}
             </div>

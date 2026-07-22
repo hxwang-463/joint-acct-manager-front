@@ -47,3 +47,7 @@ export async function updateRecordAmount(id: number, amount: number): Promise<vo
 export async function markRecordAsPaid(id: number): Promise<void> {
   await request(`/api/v1/records/${id}/paid`, { method: 'PUT' });
 }
+
+export async function revertRecordToUnpaid(id: number): Promise<void> {
+  await request(`/api/v1/records/${id}/unpaid`, { method: 'PUT' });
+}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { RecordRow } from './RecordRow';
-import { markRecordAsPaid, updateRecordAmount } from '@/lib/api';
+import { markRecordAsPaid, revertRecordToUnpaid, updateRecordAmount } from '@/lib/api';
 import type { PaymentRecordWithBalance } from '@/lib/types';
 
 interface RecordsTableProps {
@@ -20,6 +20,7 @@ interface RecordsTableProps {
 type RowAction =
   | { kind: 'editing'; id: number }
   | { kind: 'confirmingPaid'; id: number }
+  | { kind: 'confirmingRevert'; id: number }
   | null;
 
 export function RecordsTable({ records, onMutated }: RecordsTableProps) {
@@ -38,6 +39,11 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
 
   const startConfirmPaid = (record: PaymentRecordWithBalance) => {
     setAction({ kind: 'confirmingPaid', id: record.id });
+    setDraftAmount('');
+  };
+
+  const startConfirmRevert = (record: PaymentRecordWithBalance) => {
+    setAction({ kind: 'confirmingRevert', id: record.id });
     setDraftAmount('');
   };
 
@@ -70,6 +76,17 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
     }
   };
 
+  const confirmRevert = async (id: number) => {
+    try {
+      await revertRecordToUnpaid(id);
+      await onMutated();
+      reset();
+    } catch (error) {
+      console.error('Error reverting record to unpaid:', error);
+      alert('Failed to revert record. Please try again.');
+    }
+  };
+
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full min-w-[800px]">
@@ -89,6 +106,7 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
               record={record}
               isEditingAmount={action?.kind === 'editing' && action.id === record.id}
               isConfirmingPaid={action?.kind === 'confirmingPaid' && action.id === record.id}
+              isConfirmingRevert={action?.kind === 'confirmingRevert' && action.id === record.id}
               draftAmount={draftAmount}
               onDraftAmountChange={setDraftAmount}
               onStartEdit={() => startEdit(record)}
@@ -97,6 +115,9 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
               onStartConfirmPaid={() => startConfirmPaid(record)}
               onConfirmPaid={() => confirmPaid(record.id)}
               onCancelPaid={reset}
+              onStartConfirmRevert={() => startConfirmRevert(record)}
+              onConfirmRevert={() => confirmRevert(record.id)}
+              onCancelRevert={reset}
             />
           ))}
         </tbody>
