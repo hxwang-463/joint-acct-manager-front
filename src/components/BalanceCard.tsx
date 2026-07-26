@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { formatCurrency } from '@/lib/format';
 
 interface BalanceCardProps {
@@ -26,6 +28,14 @@ export function BalanceCard({
           >
             History
           </button>
+          {/* A route rather than a modal: the spend view is a page of its own,
+              and this way it can be linked to and bookmarked. */}
+          <Link
+            href="/spend"
+            className="px-3 py-1 text-sm bg-indigo-500 text-white rounded hover:bg-indigo-600"
+          >
+            Spending
+          </Link>
         </div>
 
         {/* Wraps on narrow screens: the buttons drop to their own full-width
