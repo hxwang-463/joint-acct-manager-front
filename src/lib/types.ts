@@ -25,7 +25,7 @@ export type TransactionType = 'deposit' | 'withdraw';
 
 // ---------------------------------------------------------------- spend
 
-export type StatementFormat = 'NONE' | 'CHASE' | 'AMEX';
+export type StatementFormat = 'NONE' | 'CHASE' | 'AMEX' | 'BOA' | 'CITI' | 'DISCOVER';
 export type Direction = 'DEBIT' | 'CREDIT';
 export type TxnType = 'PURCHASE' | 'REFUND' | 'PAYMENT' | 'FEE' | 'ADJUSTMENT';
 export type CategorySource = 'BANK' | 'AI' | 'USER' | 'DEFAULT';

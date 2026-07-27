@@ -158,6 +158,9 @@ export function ImportStatementModal({
               >
                 <option value="CHASE">Chase</option>
                 <option value="AMEX">American Express</option>
+                <option value="BOA">Bank of America</option>
+                <option value="CITI">Citi</option>
+                <option value="DISCOVER">Discover</option>
               </select>
             </label>
             <button
