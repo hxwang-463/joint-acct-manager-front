@@ -69,3 +69,12 @@ export function PencilIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Points up, towards the earlier records that appear above the list. */
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+    </Icon>
+  );
+}

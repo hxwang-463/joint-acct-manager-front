@@ -80,8 +80,15 @@ export async function getBalance(): Promise<number> {
   return data.amount;
 }
 
-export async function getRecords(): Promise<PaymentRecord[]> {
-  const res = await request('/api/v1/records');
+/**
+ * Records from `days` before today onwards. The far end is open — upcoming
+ * bills are the point of the list — so only the past end moves.
+ *
+ * The server clamps `days` and anchors it to its own today, so this browser's
+ * clock never shifts the window.
+ */
+export async function getRecords(days: number): Promise<PaymentRecord[]> {
+  const res = await request(`/api/v1/records?days=${days}`);
   return res.json();
 }
 

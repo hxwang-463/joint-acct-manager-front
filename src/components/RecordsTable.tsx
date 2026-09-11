@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { RecordRow } from './RecordRow';
+import { ChevronUpIcon } from './icons';
 import {
   markRecordAsPaid,
   revertRecordToUnpaid,
@@ -15,6 +16,11 @@ interface RecordsTableProps {
   records: PaymentRecordWithBalance[];
   /** Refetches records + balance after a successful mutation. */
   onMutated: () => Promise<void>;
+  /** Widens the window by another week of history. */
+  onLoadEarlier: () => Promise<void>;
+  /** False once a widened window has come back no larger than the last one. */
+  hasEarlier: boolean;
+  isLoadingEarlier: boolean;
 }
 
 /**
@@ -28,7 +34,13 @@ type RowAction =
   | { kind: 'confirmingRevert'; id: number }
   | null;
 
-export function RecordsTable({ records, onMutated }: RecordsTableProps) {
+export function RecordsTable({
+  records,
+  onMutated,
+  onLoadEarlier,
+  hasEarlier,
+  isLoadingEarlier,
+}: RecordsTableProps) {
   const [action, setAction] = useState<RowAction>(null);
   const [draftAmount, setDraftAmount] = useState('');
 
@@ -97,6 +109,25 @@ export function RecordsTable({ records, onMutated }: RecordsTableProps) {
 
   return (
     <div className="w-full overflow-x-auto">
+      {/* Above the table, because that is where the rows it loads will appear. */}
+      <div className="flex justify-center py-2">
+        {hasEarlier ? (
+          <button
+            onClick={() => {
+              // The hook handles its own failures; nothing here to add.
+              void onLoadEarlier();
+            }}
+            disabled={isLoadingEarlier}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronUpIcon />
+            {isLoadingEarlier ? 'Loading…' : 'Load earlier'}
+          </button>
+        ) : (
+          <span className="text-sm text-gray-400">No earlier records</span>
+        )}
+      </div>
+
       <table className="w-full min-w-[800px]">
         <thead>
           <tr className="border-b-2 border-gray-300">

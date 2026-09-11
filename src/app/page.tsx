@@ -12,7 +12,8 @@ import { withProjectedBalances } from '@/lib/format';
 import { version } from '../../package.json';
 
 export default function Home() {
-  const { records, currentBalance, refresh } = useAccountData();
+  const { records, currentBalance, refresh, loadEarlier, hasEarlier, isLoadingEarlier } =
+    useAccountData();
 
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -66,7 +67,13 @@ export default function Home() {
 
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
 
-      <RecordsTable records={recordsWithBalance} onMutated={refresh} />
+      <RecordsTable
+        records={recordsWithBalance}
+        onMutated={refresh}
+        onLoadEarlier={loadEarlier}
+        hasEarlier={hasEarlier}
+        isLoadingEarlier={isLoadingEarlier}
+      />
     </div>
   );
 }
